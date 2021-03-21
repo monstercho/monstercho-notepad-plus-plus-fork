@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
+#define DISABLE_OWNERDRAW_TABS
 
 #include <stdexcept>
 #include "TabBar.h"
@@ -269,7 +269,9 @@ void TabBarPlus::init(HINSTANCE hInst, HWND parent, bool isVertical, bool isMult
 
 	int style = WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | TCS_FOCUSNEVER | TCS_TABS | vertical | multiLine;
 
+#ifndef DISABLE_OWNERDRAW_TABS
 	style |= TCS_OWNERDRAWFIXED;
+#endif
 
 	_hSelf = ::CreateWindowEx(
 				0,
@@ -354,6 +356,7 @@ void TabBarPlus::init(HINSTANCE hInst, HWND parent, bool isVertical, bool isMult
 
 void TabBarPlus::doOwnerDrawTab()
 {
+#ifndef DISABLE_OWNERDRAW_TABS
 	::SendMessage(_hwndArray[0], TCM_SETPADDING, 0, MAKELPARAM(6, 0));
 	for (int i = 0 ; i < _nbCtrl ; ++i)
 	{
@@ -373,6 +376,7 @@ void TabBarPlus::doOwnerDrawTab()
 			::SendMessage(_hwndArray[i], TCM_SETPADDING, 0, MAKELPARAM(_drawTabCloseButton ? paddingSizePlusClosebuttonDynamicW : paddingSizeDynamicW, 0));
 		}
 	}
+#endif
 }
 
 

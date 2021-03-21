@@ -48,7 +48,8 @@ enum BufferStatusInfo
 	BufferChangeFilename	= 0x080,  // Filename was changed
 	BufferChangeRecentTag	= 0x100,  // Recent tag has changed
 	BufferChangeLexing		= 0x200,  // Document needs lexing
-	BufferChangeMask		= 0x3FF   // Mask: covers all changes
+	BufferChangePinned		= 0x400,  // Pinned state was changed
+	BufferChangeMask		= 0x7FF   // Mask: covers all changes
 };
 
 //const int userLangNameMax = 16;
@@ -208,6 +209,15 @@ public:
 	void setUserReadOnly(bool ro) {
 		_isUserReadOnly = ro;
 		doNotify(BufferChangeReadonly);
+	}
+
+	bool getPinned() const {
+		return _isPinned;
+	}
+
+	void setPinned(bool p) {
+		_isPinned = p;
+		doNotify(BufferChangePinned);
 	}
 
 	EolType getEolFormat() const {
@@ -397,6 +407,7 @@ private:
 	UniMode _unicodeMode;
 	int _encoding = -1;
 	bool _isUserReadOnly = false;
+	bool _isPinned = false;
 	bool _needLexer = false; // new buffers do not need lexing, Scintilla takes care of that
 	//these properties have to be duplicated because of multiple references
 	//All the vectors must have the same size at all times

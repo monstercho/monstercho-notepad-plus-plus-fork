@@ -326,14 +326,20 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 			int index = tabNotification->_tabOrigin;
 			BufferID bufferToClose = notifyDocTab->getBufferByIndex(index);
 			Buffer * buf = MainFileManager.getBufferByID(bufferToClose);
-			int iView = isFromPrimary?MAIN_VIEW:SUB_VIEW;
-			if (buf->isDirty())
-			{
-				activateBuffer(bufferToClose, iView);
-			}
 
-			if (fileClose(bufferToClose, iView))
-				checkDocState();
+			// Cannot close pinned tab.
+			if (!buf->getPinned())
+			{
+				int iView = isFromPrimary ? MAIN_VIEW : SUB_VIEW;
+
+				if (buf->isDirty())
+				{
+					activateBuffer(bufferToClose, iView);
+				}
+
+				if (fileClose(bufferToClose, iView))
+					checkDocState();
+			}
 
 			break;
 		}
@@ -506,6 +512,10 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 			{
 				// IMPORTANT: If list below is modified, you have to change the value of tabContextMenuItemPos[] in localization.cpp file
                 std::vector<MenuItemUnit> itemUnitArray;
+
+				itemUnitArray.push_back(MenuItemUnit(IDM_EDIT_SETPINNED, TEXT("Pinned")));
+				itemUnitArray.push_back(MenuItemUnit(0, NULL));
+
 				itemUnitArray.push_back(MenuItemUnit(IDM_FILE_CLOSE, TEXT("Close")));
 				itemUnitArray.push_back(MenuItemUnit(IDM_FILE_CLOSEALL_BUT_CURRENT, TEXT("Close All BUT This")));
 				itemUnitArray.push_back(MenuItemUnit(IDM_FILE_CLOSEALL_TOLEFT, TEXT("Close All to the Left")));
@@ -545,6 +555,9 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 			_tabPopupMenu.enableItem(IDM_FILE_SAVE, isEnable);
 
 			Buffer * buf = _pEditView->getCurrentBuffer();
+			bool isPinned = buf->getPinned();
+			_tabPopupMenu.checkItem(IDM_EDIT_SETPINNED, isPinned);
+
 			bool isUserReadOnly = buf->getUserReadOnly();
 			_tabPopupMenu.checkItem(IDM_EDIT_SETREADONLY, isUserReadOnly);
 

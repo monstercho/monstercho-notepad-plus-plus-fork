@@ -220,6 +220,8 @@ public :
 
 	static void setColour(COLORREF colour2Set, tabColourIndex i);
 
+	void exchangeTabItemData(int oldTab, int newTab);
+
 protected:
     // it's the boss to decide if we do the drag N drop
     static bool _doDragNDrop;
@@ -249,7 +251,6 @@ protected:
 		return (((TabBarPlus *)(::GetWindowLongPtr(hwnd, GWLP_USERDATA)))->runProc(hwnd, Message, wParam, lParam));
 	};
 	void setActiveTab(int tabIndex);
-	void exchangeTabItemData(int oldTab, int newTab);
 	void exchangeItemData(POINT point);
 
 

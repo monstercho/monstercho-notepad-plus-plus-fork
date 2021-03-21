@@ -165,6 +165,8 @@
     #define    IDM_EDIT_SORTLINES_LEXICO_CASE_INSENS_DESCENDING (IDM_EDIT + 81)
     #define    IDM_EDIT_COPY_LINK                               (IDM_EDIT + 82)
 
+    #define    IDM_EDIT_SETPINNED                               (IDM_EDIT + 100)
+
     #define    IDM_EDIT_AUTOCOMPLETE                            (50000 + 0)
     #define    IDM_EDIT_AUTOCOMPLETE_CURRENTFILE                (50000 + 1)
     #define    IDM_EDIT_FUNCCALLTIP                             (50000 + 2)

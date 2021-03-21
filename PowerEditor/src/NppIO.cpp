@@ -906,6 +906,12 @@ bool Notepad_plus::fileClose(BufferID id, int curView)
 		bufferID = _pEditView->getCurrentBufferID();
 	Buffer * buf = MainFileManager.getBufferByID(bufferID);
 
+	// Cannot close pinned tab.
+	if (buf->getPinned())
+	{
+		return false;
+	}
+
 	int res;
 
 	//process the fileNamePath into LRF
@@ -2007,6 +2013,8 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, bool shou
 
 			buf->setUserReadOnly(session._mainViewFiles[i]._isUserReadOnly);
 
+			buf->setPinned(session._mainViewFiles[i]._isPinned);
+
 			if (isSnapshotMode && session._mainViewFiles[i]._backupFilePath != TEXT("") && PathFileExists(session._mainViewFiles[i]._backupFilePath.c_str()))
 				buf->setDirty(true);
 
@@ -2123,6 +2131,7 @@ bool Notepad_plus::loadSession(Session & session, bool isSnapshotMode, bool shou
 			buf->setLangType(typeToSet, pLn);
 			buf->setEncoding(session._subViewFiles[k]._encoding);
 			buf->setUserReadOnly(session._subViewFiles[k]._isUserReadOnly);
+			buf->setPinned(session._subViewFiles[k]._isPinned);
 
 			if (isSnapshotMode && session._subViewFiles[k]._backupFilePath != TEXT("") && PathFileExists(session._subViewFiles[k]._backupFilePath.c_str()))
 				buf->setDirty(true);

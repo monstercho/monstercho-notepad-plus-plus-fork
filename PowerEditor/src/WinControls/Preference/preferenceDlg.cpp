@@ -388,6 +388,14 @@ INT_PTR CALLBACK GeneralSubDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM)
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_LAST_EXIT, BM_SETCHECK, tabBarStatus & TAB_QUITONEMPTY, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_ALTICONS, BM_SETCHECK, tabBarStatus & TAB_ALTICONS, 0);
 			
+#ifdef DISABLE_OWNERDRAW_TABS
+			// Not supported without owner draw tabs.
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_VERTICAL, BM_SETCHECK, 0, 0);
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_MULTILINE, BM_SETCHECK, 0, 0);
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_ORANGE, BM_SETCHECK, 0, 0);
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_DRAWINACTIVE, BM_SETCHECK, 0, 0);
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_ENABLETABCLOSE, BM_SETCHECK, 0, 0);
+#endif
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_HIDE, BM_SETCHECK, tabBarStatus & TAB_HIDE, 0);
 			::SendMessage(_hSelf, WM_COMMAND, IDC_CHECK_TAB_HIDE, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_SHOWSTATUSBAR, BM_SETCHECK, showStatus, 0);
@@ -464,9 +472,19 @@ INT_PTR CALLBACK GeneralSubDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM)
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_ORANGE), !toBeHidden);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_DRAWINACTIVE), !toBeHidden);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_ENABLETABCLOSE), !toBeHidden);
-					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_DBCLICK2CLOSE), !toBeHidden);
+					// UDPATE 20210321: Disabled because it doesn't seem to work.
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_DBCLICK2CLOSE), false /*!toBeHidden*/); 
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_LAST_EXIT), !toBeHidden);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_ALTICONS), !toBeHidden);
+
+#ifdef DISABLE_OWNERDRAW_TABS
+					// Not supported without owner draw tabs.
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_VERTICAL), false);
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_MULTILINE), false);
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_ORANGE), false);
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_DRAWINACTIVE), false);
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_ENABLETABCLOSE), false);
+#endif
 
 					::SendMessage(::GetParent(_hParent), NPPM_HIDETABBAR, 0, toBeHidden);
 					return TRUE;

@@ -16,6 +16,8 @@
 
 #pragma once
 
+#define DISABLE_OWNERDRAW_TABS
+
 #include "tinyxmlA.h"
 #include "tinyxml.h"
 #include "Scintilla.h"

@@ -183,11 +183,17 @@ public :
 	}
 
 	static void setDrawInactiveTab(bool b) {
+#ifdef DISABLE_OWNERDRAW_TABS
+		b = false; // not supported without owner draw
+#endif
 		_drawInactiveTab = b;
 		doOwnerDrawTab();
 	}
 
 	static void setDrawTabCloseButton(bool b) {
+#ifdef DISABLE_OWNERDRAW_TABS
+		b = false; // not supported without owner draw
+#endif
 		_drawTabCloseButton = b;
 		doOwnerDrawTab();
 	}
@@ -197,11 +203,17 @@ public :
 	}
 
 	static void setVertical(bool b) {
+#ifdef DISABLE_OWNERDRAW_TABS
+		b = false; // not supported without owner draw
+#endif
 		_isCtrlVertical = b;
 		doVertical();
 	}
 
 	static void setMultiLine(bool b) {
+#ifdef DISABLE_OWNERDRAW_TABS
+		b = false; // not supported without owner draw
+#endif
 		_isCtrlMultiLine = b;
 		doMultiLine();
 	}

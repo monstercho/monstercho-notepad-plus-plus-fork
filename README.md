@@ -1,3 +1,14 @@
+Main Changes in This Notepad++ Fork:
+-------------------------------
+- **Tabs use standard visual style.** Downsides: no **multi-line** and **vertical** tabs; no **close** button in tabs (use middle mouse button instead). 
+
+Build `notepad++.exe`:
+----------------------
+ 1. Open [`PowerEditor\visual.net\notepadPlus.vcxproj`](https://github.com/notepad-plus-plus/notepad-plus-plus/blob/master/PowerEditor/visual.net/notepadPlus.vcxproj)
+ 2. Select a solution configuration (debug or release) and a solution platform (x64 or x32)
+ 3. Build Notepad++ like a normal Visual Studio project.
+
+
 What is Notepad++ ?
 ===================
 

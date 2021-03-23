@@ -60,6 +60,10 @@ public :
 		TabBar::setImageList(_pIconListVector[_iconListIndexChoice]->getHandle());
 	};
 
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	int (*getDefaultIconIndex)(BufferID buffer) = NULL;
+#endif
+
 	void addBuffer(BufferID buffer);
 	void closeBuffer(BufferID buffer);
 	void bufferUpdated(Buffer * buffer, int mask);

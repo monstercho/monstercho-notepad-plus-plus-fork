@@ -189,6 +189,111 @@ Notepad_plus::~Notepad_plus()
 	delete _pFileBrowser;
 }
 
+#ifdef SHOW_FILE_ICONS_IN_TABS
+HICON getFileIcon(const wstring ext) {
+	HICON hIcon = 0;
+	SHFILEINFO sfi = { 0 };
+
+	//std::wstring stemp = s2ws(ext);
+	LPCWSTR result = ext.c_str();
+
+	HRESULT hr = (HRESULT)SHGetFileInfo(result, FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi), SHGFI_SMALLICON | SHGFI_ICON | SHGFI_USEFILEATTRIBUTES);
+	if (SUCCEEDED(hr)) {
+		hIcon = sfi.hIcon;
+	}
+
+	return hIcon;
+}
+
+std::map<std::wstring, int> iconIndexFromFileExt = {};
+
+int getIconIndexFromFileExt(std::wstring ext)
+{
+	std::map<std::wstring, int>::iterator it = iconIndexFromFileExt.find(ext);
+	if (it == iconIndexFromFileExt.end())
+	{
+		return -1;
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
+const wstring getFileExtension(std::wstring fileName)
+{
+	size_t i = fileName.find_last_of(L".");
+	if (i == -1)
+	{
+		return L"";
+	}
+
+	return fileName.substr(i);
+}
+
+std::wstring getFileNameFromBufferId(BufferID id)
+{
+	Buffer* buf = MainFileManager.getBufferByID(id);
+	if (buf == NULL)
+		return L"";
+
+	const TCHAR* fn = buf->getFileName();
+	if (fn == NULL)
+		return L"";
+
+	wstring fileName(fn);
+
+	return fileName;
+}
+
+int getIconIndexForBufferId(BufferID id)
+{
+	wstring fileName = getFileNameFromBufferId(id);
+	if (fileName.empty())
+		return 0;
+
+	wstring ext = getFileExtension(fileName);
+
+	int i = getIconIndexFromFileExt(ext);
+	if (i == -1)
+	{
+		i = 0;
+	}
+	return i;
+}
+
+int getCreateIconIndexForBufferId(BufferID id, IconList iconList, int* currIconCount)
+{
+	wstring fileName = getFileNameFromBufferId(id);
+	if (fileName.empty())
+		return 0;
+
+	wstring ext = getFileExtension(fileName);
+	if (ext.empty())
+		return 0;
+
+	int i = getIconIndexFromFileExt(ext);
+	if (i != -1)
+	{
+		return i;
+	}
+
+	HICON hIcon = getFileIcon(ext);
+	if (hIcon == 0)
+	{
+		return 0;
+	}
+
+	int index = *currIconCount;
+	iconIndexFromFileExt[ext] = index;
+
+	ImageList_AddIcon(iconList.getHandle(), hIcon);
+	*currIconCount = *currIconCount + 1;
+
+	return index;
+}
+#endif // SHOW_FILE_ICONS_IN_TABS
+
 LRESULT Notepad_plus::init(HWND hwnd)
 {
 	NppParameters& nppParam = NppParameters::getInstance();
@@ -223,17 +328,37 @@ LRESULT Notepad_plus::init(HWND hwnd)
 
 	int tabBarStatus = nppGUI._tabStatus;
 
+#ifdef DISABLE_OWNERDRAW_TABS
+	_toReduceTabBar = 1;
+#else
 	_toReduceTabBar = ((tabBarStatus & TAB_REDUCE) != 0);
+#endif
+
 	int iconDpiDynamicalSize = nppParam._dpiManager.scaleY(_toReduceTabBar ? 13 : 20);
-	_docTabIconList.create(iconDpiDynamicalSize, _pPublicInterface->getHinst(), docTabIconIDs, sizeof(docTabIconIDs) / sizeof(int));
+	
+	int iconsCount = sizeof(docTabIconIDs) / sizeof(int);
+	_docTabIconList.create(iconDpiDynamicalSize, _pPublicInterface->getHinst(), docTabIconIDs, iconsCount);
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	_docTabIconListCount = iconsCount;
+#endif
+
 	_docTabIconListAlt.create(iconDpiDynamicalSize, _pPublicInterface->getHinst(), docTabIconIDs_alt, sizeof(docTabIconIDs_alt) / sizeof(int));
 
 	vector<IconList *> pIconListVector;
 	pIconListVector.push_back(&_docTabIconList);
 	pIconListVector.push_back(&_docTabIconListAlt);
 
-	_mainDocTab.init(_pPublicInterface->getHinst(), hwnd, &_mainEditView, pIconListVector, (tabBarStatus & TAB_ALTICONS) ? 1 : 0);
-	_subDocTab.init(_pPublicInterface->getHinst(), hwnd, &_subEditView, pIconListVector, (tabBarStatus & TAB_ALTICONS) ? 1 : 0);
+	// Don't use alternative icons set, which is not compatible with showing file type icons.
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	_mainDocTab.getDefaultIconIndex = &getIconIndexForBufferId;
+	_subDocTab.getDefaultIconIndex = &getIconIndexForBufferId;
+
+	unsigned char iconListIndex = 0;
+#else
+	unsigned char iconListIndex = (tabBarStatus & TAB_ALTICONS) ? 1 : 0;
+#endif
+	_mainDocTab.init(_pPublicInterface->getHinst(), hwnd, &_mainEditView, pIconListVector, iconListIndex);
+	_subDocTab.init(_pPublicInterface->getHinst(), hwnd, &_subEditView, pIconListVector, iconListIndex);
 
 	_mainEditView.display();
 
@@ -3995,6 +4120,10 @@ void Notepad_plus::loadBufferIntoView(BufferID id, int whichOne, bool dontClose)
 	}
 
 	MainFileManager.addBufferReference(id, viewToOpen);
+
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	getCreateIconIndexForBufferId(id, _docTabIconList, &_docTabIconListCount);
+#endif
 
 	//close clean doc. Use special logic to prevent flicker of tab showing then hiding
 	if (idToClose != BUFFER_INVALID)

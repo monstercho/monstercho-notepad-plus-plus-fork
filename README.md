@@ -1,7 +1,8 @@
-Main Changes in This Notepad++ Fork:
--------------------------------
+Main Changes in This Notepad++ Fork
+-----------------------------------
 - **Tabs use standard visual style.** Downsides: no **multi-line** and **vertical** tabs; no **close** button in tabs (use middle mouse button instead). 
 - **Support for pinned tabs.** Pinned tabs cannot be closed and show only the first filename char as tab title. Pin/unpin from tab context menu (right click on the tab).
+- **Show file type icons in tabs.** Used only when tab is in 'saved' state. Downside: disabled alternative icons setting.
 
 Build `notepad++.exe`:
 ----------------------

@@ -290,7 +290,11 @@ private:
 	ContextMenu _fileSwitcherMultiFilePopupMenu;
 
 	ToolBar	_toolBar;
+
 	IconList _docTabIconList;
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	int _docTabIconListCount;
+#endif
 	IconList _docTabIconListAlt;
 
     StatusBar _statusBar;

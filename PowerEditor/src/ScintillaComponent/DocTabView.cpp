@@ -37,8 +37,16 @@ void DocTabView::addBuffer(BufferID buffer)
 	tie.mask = TCIF_TEXT | TCIF_IMAGE | TCIF_PARAM;
 
 	int index = -1;
+#ifdef SHOW_FILE_ICONS_IN_TABS
+	if (_hasImgLst && (getDefaultIconIndex != NULL))
+	{
+		index = getDefaultIconIndex(buffer);
+	}
+#else
 	if (_hasImgLst)
 		index = 0;
+#endif
+
 	tie.iImage = index;
 	tie.pszText = const_cast<TCHAR *>(buf->getFileName());
 	tie.lParam = reinterpret_cast<LPARAM>(buffer);
@@ -133,7 +141,15 @@ void DocTabView::bufferUpdated(Buffer * buffer, int mask)
 	if (mask & BufferChangeReadonly || mask & BufferChangeDirty)
 	{
 		tie.mask |= TCIF_IMAGE;
-		tie.iImage = buffer->isDirty()?UNSAVED_IMG_INDEX:SAVED_IMG_INDEX;
+
+		int defImageIndex = SAVED_IMG_INDEX;
+#ifdef SHOW_FILE_ICONS_IN_TABS
+		if (_hasImgLst && (getDefaultIconIndex != NULL))
+		{
+			defImageIndex = getDefaultIconIndex(buffer);
+		}
+#endif
+		tie.iImage = buffer->isDirty()?UNSAVED_IMG_INDEX:defImageIndex;
 		if (buffer->isMonitoringOn())
 		{
 			tie.iImage = MONITORING_IMG_INDEX;

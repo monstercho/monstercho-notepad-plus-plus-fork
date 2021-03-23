@@ -386,10 +386,16 @@ INT_PTR CALLBACK GeneralSubDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM)
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_VERTICAL, BM_SETCHECK, tabBarStatus & TAB_VERTICAL, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_MULTILINE, BM_SETCHECK, tabBarStatus & TAB_MULTILINE, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_LAST_EXIT, BM_SETCHECK, tabBarStatus & TAB_QUITONEMPTY, 0);
+
+#ifdef SHOW_FILE_ICONS_IN_TABS
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_ALTICONS, BM_SETCHECK, 0, 0);
+#else
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_ALTICONS, BM_SETCHECK, tabBarStatus & TAB_ALTICONS, 0);
-			
+#endif
+
 #ifdef DISABLE_OWNERDRAW_TABS
 			// Not supported without owner draw tabs.
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_REDUCE, BM_SETCHECK, 1, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_VERTICAL, BM_SETCHECK, 0, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_TAB_MULTILINE, BM_SETCHECK, 0, 0);
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_ORANGE, BM_SETCHECK, 0, 0);
@@ -477,8 +483,13 @@ INT_PTR CALLBACK GeneralSubDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM)
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_LAST_EXIT), !toBeHidden);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_ALTICONS), !toBeHidden);
 
+#ifdef SHOW_FILE_ICONS_IN_TABS
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_ALTICONS), false);
+#endif
+
 #ifdef DISABLE_OWNERDRAW_TABS
 					// Not supported without owner draw tabs.
+					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_REDUCE), false);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_VERTICAL), false);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_TAB_MULTILINE), false);
 					::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_ORANGE), false);

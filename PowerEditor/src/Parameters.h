@@ -17,6 +17,7 @@
 #pragma once
 
 #define DISABLE_OWNERDRAW_TABS
+#define SHOW_FILE_ICONS_IN_TABS
 
 #include "tinyxmlA.h"
 #include "tinyxml.h"

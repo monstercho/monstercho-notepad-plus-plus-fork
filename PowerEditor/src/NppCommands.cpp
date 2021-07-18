@@ -1804,6 +1804,53 @@ void Notepad_plus::command(int id)
 		}
 		break;
 
+		case IDM_EDIT_SETPINNED:
+		{
+			Buffer* buf = _pEditView->getCurrentBuffer();
+			buf->setPinned(!buf->getPinned());
+
+			if (buf->getPinned())
+			{
+				int srcIndex = _mainDocTab.getIndexByBuffer(buf);
+				while (srcIndex > 0)
+				{
+					int dstIndex = srcIndex - 1;
+					Buffer* toSwapBuf = MainFileManager.getBufferByID(_mainDocTab.getBufferByIndex(dstIndex));
+
+					if (toSwapBuf != NULL && !toSwapBuf->getPinned())
+					{
+						_mainDocTab.exchangeTabItemData(srcIndex, dstIndex);
+						srcIndex = dstIndex;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			else
+			{
+				int srcIndex = _mainDocTab.getIndexByBuffer(buf);
+				int count = _mainDocTab.getItemCount();
+
+				while (srcIndex >= 0 && srcIndex < count)
+				{
+					int dstIndex = srcIndex + 1;
+					Buffer* toSwapBuf = MainFileManager.getBufferByID(_mainDocTab.getBufferByIndex(dstIndex));
+					if (toSwapBuf != NULL && toSwapBuf->getPinned())
+					{
+						_mainDocTab.exchangeTabItemData(srcIndex, dstIndex);
+						srcIndex = dstIndex;
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+		}
+		break;
+
 		case IDM_EDIT_CLEARREADONLY:
 		{
 			Buffer * buf = _pEditView->getCurrentBuffer();

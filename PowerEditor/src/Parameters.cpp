@@ -5394,7 +5394,11 @@ void NppParameters::feedGUIParameters(TiXmlNode *node)
 				return defaultValue;
 			};
 
+#ifdef DISABLE_OWNERDRAW_TABS
+			_nppGUI._darkmode._isEnabled = false;
+#else
 			_nppGUI._darkmode._isEnabled = parseYesNoBoolAttribute(TEXT("enable"));
+#endif
 
 			int i;
 			const TCHAR* val;

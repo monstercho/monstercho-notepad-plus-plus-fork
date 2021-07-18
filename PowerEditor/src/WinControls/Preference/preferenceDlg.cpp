@@ -883,7 +883,13 @@ INT_PTR CALLBACK DarkModeSubDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM
 	{
 		case WM_INITDIALOG:
 		{
+#ifdef DISABLE_OWNERDRAW_TABS
+			// Not supported without owner draw tabs.
+			::SendDlgItemMessage(_hSelf, IDC_CHECK_DARKMODE_ENABLE, BM_SETCHECK, 0, 0);
+			::EnableWindow(::GetDlgItem(_hSelf, IDC_CHECK_DARKMODE_ENABLE), false);
+#else
 			::SendDlgItemMessage(_hSelf, IDC_CHECK_DARKMODE_ENABLE, BM_SETCHECK, nppGUI._darkmode._isEnabled, 0);
+#endif
 
 			int id = IDC_RADIO_DARKMODE_BLACK;
 			switch (nppGUI._darkmode._colorTone)

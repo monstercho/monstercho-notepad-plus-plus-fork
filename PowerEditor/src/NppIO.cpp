@@ -323,7 +323,7 @@ BufferID Notepad_plus::doOpen(const generic_string& fileName, bool isRecursive, 
     SCNotification scnN;
     scnN.nmhdr.code = NPPN_FILEBEFORELOAD;
     scnN.nmhdr.hwndFrom = _pPublicInterface->getHSelf();
-    scnN.nmhdr.idFrom = NULL;
+    scnN.nmhdr.idFrom = 0;
     _pluginsManager.notify(&scnN);
 
     if (encoding == -1)
@@ -1604,26 +1604,62 @@ bool Notepad_plus::fileSaveSpecific(const generic_string& fileNameToSave)
 	}
 }
 
-bool Notepad_plus::fileSaveAll()
+bool Notepad_plus::fileSaveAllConfirm()
 {
-	if (viewVisible(MAIN_VIEW))
+	bool confirmed = false;
+
+	if (NppParameters::getInstance().getNppGUI()._saveAllConfirm)
 	{
-		for (size_t i = 0; i < _mainDocTab.nbItem(); ++i)
+		int answer = _nativeLangSpeaker.messageBox("SaveAllConfirm",
+			_pPublicInterface->getHSelf(),
+			TEXT("Are you sure you want to save all documents?\r\rChoose \"Cancel\" if your answer will always be \"Yes\" and you won't be asked this question again.\rYou can re-activate this dialog in Preferences dialog later."),
+			TEXT("Save All Confirmation"),
+			MB_YESNOCANCEL | MB_DEFBUTTON2);
+
+		if (answer == IDYES)
 		{
-			BufferID idToSave = _mainDocTab.getBufferByIndex(i);
-			fileSave(idToSave);
+			confirmed = true;
 		}
+
+		if (answer == IDCANCEL)
+		{
+			NppParameters::getInstance().getNppGUI()._saveAllConfirm = false;
+			//uncheck the "Enable save all confirm dialog" checkbox in Preference-> MISC settings
+			_preference._miscSubDlg.setChecked(IDC_CHECK_SAVEALLCONFIRM, false);
+			confirmed = true;
+		}
+	}
+	else
+	{
+		confirmed = true;
 	}
 
-	if (viewVisible(SUB_VIEW))
+	return confirmed;
+}
+
+bool Notepad_plus::fileSaveAll()
+{
+	if ( fileSaveAllConfirm() )
 	{
-		for (size_t i = 0; i < _subDocTab.nbItem(); ++i)
+		if (viewVisible(MAIN_VIEW))
 		{
-			BufferID idToSave = _subDocTab.getBufferByIndex(i);
-			fileSave(idToSave);
+			for (size_t i = 0; i < _mainDocTab.nbItem(); ++i)
+			{
+				BufferID idToSave = _mainDocTab.getBufferByIndex(i);
+				fileSave(idToSave);
+			}
 		}
+
+		if (viewVisible(SUB_VIEW))
+		{
+			for (size_t i = 0; i < _subDocTab.nbItem(); ++i)
+			{
+				BufferID idToSave = _subDocTab.getBufferByIndex(i);
+				fileSave(idToSave);
+			}
+		}
+		checkDocState();
 	}
-	checkDocState();
 	return true;
 }
 
@@ -1634,31 +1670,38 @@ bool Notepad_plus::fileSaveAs(BufferID id, bool isSaveCopy)
 		bufferID = _pEditView->getCurrentBufferID();
 	Buffer * buf = MainFileManager.getBufferByID(bufferID);
 
+	generic_string origPathname = buf->getFullPathName();
+	bool wasUntitled = buf->isUntitled();
+
 	CustomFileDialog fDlg(_pPublicInterface->getHSelf());
 
 	fDlg.setExtFilter(TEXT("All types"), TEXT(".*"));
 
 	LangType langType = buf->getLangType();
 
-	int langTypeIndex = 0;
-	if (!((NppParameters::getInstance()).getNppGUI()._setSaveDlgExtFiltToAllTypes)) 
-	{
-		langTypeIndex = setFileOpenSaveDlgFilters(fDlg, false, langType);
-	}
+	const bool defaultAllTypes = NppParameters::getInstance().getNppGUI()._setSaveDlgExtFiltToAllTypes;
+	const int langTypeIndex = setFileOpenSaveDlgFilters(fDlg, false, langType);
 	
 	fDlg.setDefFileName(buf->getFileName());
 
 	fDlg.setExtIndex(langTypeIndex + 1); // +1 for "All types"
 
+	const generic_string checkboxLabel = _nativeLangSpeaker.getLocalizedStrFromID("file-save-assign-type",
+		TEXT("&Append extension"));
+	fDlg.enableFileTypeCheckbox(checkboxLabel, !defaultAllTypes);
+
 	// Disable file autodetection before opening save dialog to prevent use-after-delete bug.
 	NppParameters& nppParam = NppParameters::getInstance();
 	auto cdBefore = nppParam.getNppGUI()._fileAutoDetection;
-	(const_cast<NppGUI &>(nppParam.getNppGUI()))._fileAutoDetection = cdDisabled;
+	(nppParam.getNppGUI())._fileAutoDetection = cdDisabled;
 
 	generic_string fn = fDlg.doSaveDlg();
 
+	// Remember the selected state
+	(nppParam.getNppGUI())._setSaveDlgExtFiltToAllTypes = !fDlg.getFileTypeCheckboxValue();
+
 	// Enable file autodetection again.
-	(const_cast<NppGUI &>(nppParam.getNppGUI()))._fileAutoDetection = cdBefore;
+	(nppParam.getNppGUI())._fileAutoDetection = cdBefore;
 
 	if (!fn.empty())
 	{
@@ -1671,6 +1714,10 @@ bool Notepad_plus::fileSaveAs(BufferID id, bool isSaveCopy)
 			bool res = doSave(bufferID, fn.c_str(), isSaveCopy);
 			//buf->setNeedsLexing(true);	//commented to fix wrapping being removed after save as (due to SCI_CLEARSTYLE or something, seems to be Scintilla bug)
 			//Changing lexer after save seems to work properly
+			if (!wasUntitled && !isSaveCopy)
+			{
+				_lastRecentFileList.add(origPathname.c_str());
+			}
 			return res;
 		}
 		else		//cannot save, other view has buffer already open, activate it
@@ -1685,10 +1732,10 @@ bool Notepad_plus::fileSaveAs(BufferID id, bool isSaveCopy)
 		}
 	}
 	else // cancel button is pressed
-    {
-        checkModifiedDocument(true);
+	{
+		checkModifiedDocument(true);
 		return false;
-    }
+	}
 }
 
 bool Notepad_plus::fileRename(BufferID id)
@@ -1712,8 +1759,12 @@ bool Notepad_plus::fileRename(BufferID id)
 
 		fDlg.setExtFilter(TEXT("All types"), TEXT(".*"));
 		setFileOpenSaveDlgFilters(fDlg, false);
-
+		fDlg.setFolder(buf->getFullPathName());
 		fDlg.setDefFileName(buf->getFileName());
+
+		generic_string title = _nativeLangSpeaker.getLocalizedStrFromID("file-rename-title", TEXT("Rename"));
+		fDlg.setTitle(title.c_str());
+
 		generic_string fn = fDlg.doSaveDlg();
 
 		if (!fn.empty())
@@ -1728,10 +1779,10 @@ bool Notepad_plus::fileRename(BufferID id)
 		// Reserved characters: < > : " / \ | ? *
 		std::wstring reservedChars = TEXT("<>:\"/\\|\?*");
 
-		generic_string title = _nativeLangSpeaker.getLocalizedStrFromID("tabrename-title", TEXT("Rename Current Tab"));
 		generic_string staticName = _nativeLangSpeaker.getLocalizedStrFromID("tabrename-newname", TEXT("New Name: "));
 
 		StringDlg strDlg;
+		generic_string title = _nativeLangSpeaker.getLocalizedStrFromID("tabrename-title", TEXT("Rename Current Tab"));
 		strDlg.init(_pPublicInterface->getHinst(), _pPublicInterface->getHSelf(), title.c_str(), staticName.c_str(), buf->getFileName(), 0, reservedChars.c_str(), true);
 
 		TCHAR *tabNewName = reinterpret_cast<TCHAR *>(strDlg.doDialog());

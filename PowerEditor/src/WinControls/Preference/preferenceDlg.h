@@ -37,6 +37,9 @@ class GeneralSubDlg : public StaticDialog
 {
 public :
 	GeneralSubDlg() = default;
+	void setToolIconsFromStdToSmall();
+	void disableTabbarAlternateIcons();
+
 private :
 	INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 };
@@ -49,6 +52,26 @@ public :
 private :
 	INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 	void initScintParam();
+};
+
+class DarkModeSubDlg : public StaticDialog
+{
+public:
+	DarkModeSubDlg() = default;
+
+private:
+	ColourPicker* _pBackgroundColorPicker = nullptr;
+	ColourPicker* _pSofterBackgroundColorPicker = nullptr;
+	ColourPicker* _pHotBackgroundColorPicker = nullptr;
+	ColourPicker* _pPureBackgroundColorPicker = nullptr;
+	ColourPicker* _pErrorBackgroundColorPicker = nullptr;
+	ColourPicker* _pTextColorPicker = nullptr;
+	ColourPicker* _pDarkerTextColorPicker = nullptr;
+	ColourPicker* _pDisabledTextColorPicker = nullptr;
+	ColourPicker* _pEdgeColorPicker = nullptr;
+
+	INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
+	void enableCustomizedColorCtrls(bool doEnable);
 };
 
 class MarginsBorderEdgeSubDlg : public StaticDialog
@@ -230,7 +253,7 @@ private :
 class PreferenceDlg : public StaticDialog
 {
 friend class NativeLangSpeaker;
-
+friend class Notepad_plus;
 public :
 	PreferenceDlg() = default;
 
@@ -265,6 +288,7 @@ private :
 	WindowVector _wVector;
 	GeneralSubDlg _generalSubDlg;
 	EditingSubDlg _editingSubDlg;
+	DarkModeSubDlg _darkModeSubDlg;
 	MarginsBorderEdgeSubDlg _marginsBorderEdgeSubDlg;
 	MiscSubDlg _miscSubDlg;
 	RegExtDlg _fileAssocDlg;

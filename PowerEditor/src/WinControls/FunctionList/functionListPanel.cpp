@@ -100,13 +100,13 @@ size_t FunctionListPanel::getBodyClosePos(size_t begin, const TCHAR *bodyOpenSym
 
 	do
 	{
-		if (targetStart != -1 && targetStart != -2) // found open or close symbol
+		if (targetStart >= 0) // found open or close symbol
 		{
 			targetEnd = int((*_ppEditView)->execute(SCI_GETTARGETEND));
 
 			// Now we determinate the symbol (open or close)
 			int tmpStart = (*_ppEditView)->searchInTarget(bodyOpenSymbol, lstrlen(bodyOpenSymbol), targetStart, targetEnd);
-			if (tmpStart != -1 && tmpStart != -2) // open symbol found
+			if (tmpStart >= 0) // open symbol found
 			{
 				++cntOpen;
 			}
@@ -145,7 +145,7 @@ generic_string FunctionListPanel::parseSubLevel(size_t begin, size_t end, std::v
 	const TCHAR *regExpr2search = dataToSearch[0].c_str();
 	int targetStart = (*_ppEditView)->searchInTarget(regExpr2search, lstrlen(regExpr2search), begin, end);
 
-	if (targetStart == -1 || targetStart == -2)
+	if (targetStart < 0)
 	{
 		foundPos = -1;
 		return TEXT("");
@@ -595,6 +595,14 @@ void FunctionListPanel::notified(LPNMHDR notification)
 	{
 		::SendMessage(_hParent, WM_COMMAND, IDM_VIEW_FUNC_LIST, 0);
 	}
+	else if (notification->code == NM_CUSTOMDRAW && (notification->hwndFrom == _hToolbarMenu))
+	{
+		if (NppDarkMode::isEnabled())
+		{
+			auto nmtbcd = reinterpret_cast<LPNMTBCUSTOMDRAW>(notification);
+			FillRect(nmtbcd->nmcd.hdc, &nmtbcd->nmcd.rc, NppDarkMode::getBackgroundBrush());
+		}
+	}
 }
 
 BOOL FunctionListPanel::setTreeViewImageList(int root_id, int node_id, int leaf_id)
@@ -679,7 +687,7 @@ static WNDPROC oldFunclstToolbarProc = NULL;
 static LRESULT CALLBACK funclstToolbarProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
-    {
+	{
 		case WM_CTLCOLOREDIT :
 		{
 			return ::SendMessage(::GetParent(hwnd), WM_CTLCOLOREDIT, wParam, lParam);
@@ -732,36 +740,57 @@ void FunctionListPanel::setSort(bool isEnabled)
 
 INT_PTR CALLBACK FunctionListPanel::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
-    switch (message)
-    {
+	switch (message)
+	{
 		// Make edit field red if not found
 		case WM_CTLCOLOREDIT :
 		{
-			// if the text not found modify the background color of the editor
-			static HBRUSH hBrushBackground = CreateSolidBrush(BCKGRD_COLOR);
 			TCHAR text2search[MAX_PATH] ;
 			::SendMessage(_hSearchEdit, WM_GETTEXT, MAX_PATH, reinterpret_cast<LPARAM>(text2search));
+			bool textFound = false;
 			if (text2search[0] == '\0')
 			{
-				return FALSE; // no text, use the default color
+				textFound = true; // no text, use the default color
 			}
 
-			HTREEITEM searchViewRoot = _treeViewSearchResult.getRoot();
-			if (searchViewRoot)
+			if (!textFound)
 			{
-				if (_treeViewSearchResult.getChildFrom(searchViewRoot))
-					return FALSE; // children on root found, use the default color
+				HTREEITEM searchViewRoot = _treeViewSearchResult.getRoot();
+				if (searchViewRoot)
+				{
+					if (_treeViewSearchResult.getChildFrom(searchViewRoot))
+					{
+						textFound = true; // children on root found, use the default color
+					}
+				}
+				else
+				{
+					textFound = true; // no root (no parser), use the default color
+				}
 			}
-			else
-				return FALSE; // no root (no parser), use the default color
+
+			if (textFound)
+			{
+				if (NppDarkMode::isEnabled())
+				{
+					SetTextColor((HDC)wParam, NppDarkMode::getTextColor());
+					SetBkColor((HDC)wParam, NppDarkMode::getBackgroundColor());
+					return (LRESULT)NppDarkMode::getBackgroundBrush();
+				}
+				else
+					return FALSE;
+			}
+
 			// text not found
+			// if the text not found modify the background color of the editor
+			static HBRUSH hBrushBackground = CreateSolidBrush(BCKGRD_COLOR);
 			SetTextColor((HDC)wParam, TXT_COLOR);
 			SetBkColor((HDC)wParam, BCKGRD_COLOR);
 			return (LRESULT)hBrushBackground;
 		}
 
-        case WM_INITDIALOG :
-        {
+		case WM_INITDIALOG :
+		{
 			int editWidth = NppParameters::getInstance()._dpiManager.scaleX(100);
 			int editWidthSep = NppParameters::getInstance()._dpiManager.scaleX(105); //editWidth + 5
 			int editHeight = NppParameters::getInstance()._dpiManager.scaleY(20);
@@ -770,6 +799,9 @@ INT_PTR CALLBACK FunctionListPanel::run_dlgProc(UINT message, WPARAM wParam, LPA
 			int style = WS_CHILD | WS_VISIBLE | CCS_ADJUSTABLE | TBSTYLE_AUTOSIZE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | BTNS_AUTOSIZE | BTNS_SEP | TBSTYLE_TOOLTIPS;
 			_hToolbarMenu = CreateWindowEx(0,TOOLBARCLASSNAME,NULL, style,
 								   0,0,0,0,_hSelf,nullptr, _hInst, NULL);
+
+			NppDarkMode::setDarkTooltips(_hToolbarMenu, NppDarkMode::ToolTipsType::toolbar);
+			NppDarkMode::setDarkLineAbovePanelToolbar(_hToolbarMenu);
 
 			oldFunclstToolbarProc = reinterpret_cast<WNDPROC>(::SetWindowLongPtr(_hToolbarMenu, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(funclstToolbarProc)));
 			TBBUTTON tbButtons[3];
@@ -829,8 +861,18 @@ INT_PTR CALLBACK FunctionListPanel::run_dlgProc(UINT message, WPARAM wParam, LPA
 			setTreeViewImageList(IDI_FUNCLIST_ROOT, IDI_FUNCLIST_NODE, IDI_FUNCLIST_LEAF);
 
 			_treeView.display();
-            return TRUE;
-        }
+			return TRUE;
+		}
+
+		case NPPM_INTERNAL_REFRESHDARKMODE:
+		{
+			NppDarkMode::setDarkTooltips(_hToolbarMenu, NppDarkMode::ToolTipsType::toolbar);
+			NppDarkMode::setDarkLineAbovePanelToolbar(_hToolbarMenu);
+
+			NppDarkMode::setDarkTooltips(_treeView.getHSelf(), NppDarkMode::ToolTipsType::treeview);
+			NppDarkMode::setTreeViewStyle(_treeView.getHSelf());
+			return TRUE;
+		}
 
 		case WM_DESTROY:
 			_treeView.destroy();
@@ -861,7 +903,7 @@ INT_PTR CALLBACK FunctionListPanel::run_dlgProc(UINT message, WPARAM wParam, LPA
 			}
 
 			switch (LOWORD(wParam))
-            {
+			{
 				case IDC_SORTBUTTON_FUNCLIST:
 				{
 					sortOrUnsort();
